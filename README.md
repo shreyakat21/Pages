@@ -2,12 +2,7 @@
 
 Hi! This is **Pages**, our book tracking web app.  
 
-Here’s what I’ve done so far and how you can set it up to start working on it.  
-The app has a cozy library look using the *Playfair Display* font.  
-
 ---
-
-## What’s Done So Far
 
 ### Login / Sign-Up
 - `/login` page with **Supabase Auth UI** for signing in.  
