@@ -7,6 +7,9 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        serif: ['var(--font-playfair)', 'serif'],
+      },
       colors: {
         stone: {
           100: '#f5f5f4', // Soft white/cream

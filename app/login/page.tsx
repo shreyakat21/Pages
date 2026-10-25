@@ -7,11 +7,13 @@ import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { Session } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
+import { useToast } from '@/components/Toast'
 
 export default function LoginPage() {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const { showToast } = useToast()
 
   useEffect(() => {
     const checkSession = async () => {
@@ -42,7 +44,7 @@ export default function LoginPage() {
       router.push('/login')
     } catch (err: any) {
       console.error('Sign-out error:', err)
-      alert('Failed to sign out. Please try again.')
+      showToast('Failed to sign out. Please try again.', 'error')
     }
   }
 
@@ -66,7 +68,7 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-stone-100 bg-gradient-to-r from-emerald-600 to-[#4a3728] bg-clip-text text-transparent">
+          <h2 className="text-3xl font-serif font-bold text-stone-100 bg-gradient-to-r from-emerald-600 to-[#4a3728] bg-clip-text text-transparent">
             Welcome to Pages
           </h2>
           {session ? (

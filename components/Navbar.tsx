@@ -1,201 +1,164 @@
 'use client'
+
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { Home, Search, User, LogOut, Menu, X } from 'lucide-react'
 
 const navItems = [
-  { name: 'Home', href: '/' },
-  { name: 'Search', href: '/search' },
-  { name: 'Profile', href: '/profile' },
+  { name: 'Home', href: '/', icon: Home },
+  { name: 'Search', href: '/search', icon: Search },
+  { name: 'Profile', href: '/profile', icon: User },
 ]
 
 export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    checkUser()
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null))
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
     })
     return () => subscription.unsubscribe()
   }, [])
 
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    setUser(session?.user ?? null)
-  }
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     await supabase.auth.signOut()
+    setMenuOpen(false)
+    setMobileOpen(false)
     router.push('/')
-    setIsUserMenuOpen(false)
   }
 
   return (
-    <nav className="glass-card sticky top-0 z-50 border-b border-white/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="relative">
-              <div className="w-6 h-6 bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 rounded-lg flex items-center justify-center shadow-lg group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110">
-                <span className="text-white font-bold text-xs">L</span>
-              </div>
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse-slow"></div>
-            </div>
-            <span className="text-lg font-bold gradient-text group-hover:neon-text transition-all duration-300">
-              LetterboxBooks
-            </span>
-          </Link>
+    <nav className="sticky top-0 z-50 w-full bg-[#2f1e1e]/90 backdrop-blur-md border-b border-stone-100/20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-stone-100 rounded-lg flex items-center justify-center shadow-lg">
+            <span className="text-[#4a3728] font-bold text-lg bg-gradient-to-r from-[#4a3728] to-emerald-600 bg-clip-text text-transparent">P</span>
+          </div>
+          <span className="text-2xl sm:text-3xl font-serif font-bold text-stone-100" style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}>
+            Pages
+          </span>
+        </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
+        <div className="hidden md:flex items-center gap-6">
+          {navItems.map((item) => {
+            const active = pathname === item.href
+            return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 relative group ${
-                  pathname === item.href
-                    ? 'text-white bg-white/20 backdrop-blur-sm shadow-lg'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                className={`flex items-center gap-2 transition-all duration-300 text-base ${
+                  active ? 'text-stone-50 font-semibold' : 'text-stone-100/90 hover:text-stone-50'
                 }`}
               >
-                {item.name}
-                <div className={`absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                  pathname === item.href ? 'opacity-100' : ''
-                }`}></div>
+                <item.icon className={`h-5 w-5 ${active ? 'text-emerald-200' : 'text-emerald-300'}`} />
+                <span>{item.name}</span>
               </Link>
-            ))}
-          </div>
+            )
+          })}
+        </div>
 
-          {/* User Menu / Auth */}
-          <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-4">
+          {user ? (
+            <div className="relative hidden md:block" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-stone-100 hover:bg-stone-100/10 transition-all duration-300"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4a3728] to-emerald-600 flex items-center justify-center text-sm font-semibold text-stone-100">
+                  {user.email?.charAt(0).toUpperCase()}
+                </div>
+                <span className="text-sm max-w-[10rem] truncate">{user.email}</span>
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-52 bg-[#2f1e1e] border border-stone-100/20 rounded-lg shadow-xl py-2 animate-fade-in">
+                  <Link
+                    href="/profile"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-stone-100 hover:bg-stone-100/10"
+                  >
+                    <User className="h-4 w-4 text-emerald-300" /> Your Profile
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-stone-100 hover:bg-stone-100/10"
+                  >
+                    <LogOut className="h-4 w-4 text-red-300" /> Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="hidden md:inline-block relative overflow-hidden rounded-lg px-6 py-2 text-stone-100 font-semibold bg-gradient-to-r from-[#4a3728] to-emerald-600 hover:from-[#3c2f2f] hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-1"
+            >
+              Sign In
+            </Link>
+          )}
+
+          <button
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            className="md:hidden text-stone-100 p-2 rounded-lg hover:bg-stone-100/10"
+          >
+            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+      </div>
+
+      {mobileOpen && (
+        <div className="md:hidden border-t border-stone-100/20 bg-[#2f1e1e]/95 px-4 py-4 space-y-3 animate-fade-in">
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-2 py-2 ${pathname === item.href ? 'text-stone-50 font-semibold' : 'text-stone-100/90'}`}
+            >
+              <item.icon className="h-5 w-5 text-emerald-300" />
+              <span>{item.name}</span>
+            </Link>
+          ))}
+          <div className="border-t border-stone-100/20 pt-3">
             {user ? (
-              <div className="relative">
+              <>
+                <p className="text-sm text-stone-100/60 mb-2 truncate">Signed in as {user.email}</p>
                 <button
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center space-x-2 text-white hover:text-white/80 focus:outline-none transition-all duration-300 group"
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 text-stone-100 py-2"
                 >
-                  <div className="relative">
-                    <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg group-hover:shadow-2xl transition-all duration-300 group-hover:scale-110">
-                      <span className="text-white font-medium text-xs">
-                        {user.email?.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-                  </div>
-                  <span className="hidden sm:block text-white/90 group-hover:text-white transition-colors duration-300 text-sm">
-                    {user.email}
-                  </span>
-                  <svg className="w-3 h-3 text-white/70 group-hover:text-white transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <LogOut className="h-5 w-5 text-red-300" /> Sign Out
                 </button>
-
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-3 w-56 glass-card rounded-2xl py-2 z-50 animate-fade-in">
-                    <Link
-                      href="/profile"
-                      className="block px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors duration-200"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span>Your Profile</span>
-                      </div>
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-4 py-3 text-sm text-white hover:bg-white/10 transition-colors duration-200"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        <span>Sign Out</span>
-                      </div>
-                    </button>
-                  </div>
-                )}
-              </div>
+              </>
             ) : (
               <Link
                 href="/login"
-                className="btn-modern group"
+                onClick={() => setMobileOpen(false)}
+                className="block text-center rounded-lg px-6 py-2 text-stone-100 font-semibold bg-gradient-to-r from-[#4a3728] to-emerald-600"
               >
-                <span className="relative z-10">Sign In</span>
+                Sign In
               </Link>
             )}
-
-            {/* Mobile menu button */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-white hover:text-white/80 focus:outline-none focus:text-white transition-colors duration-300 p-2 rounded-xl hover:bg-white/10"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  {isMobileMenuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
-              </button>
-            </div>
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden animate-fade-in">
-            <div className="px-2 pt-2 pb-4 space-y-2 glass-card rounded-2xl mt-2">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`block px-4 py-3 rounded-xl text-base font-medium transition-all duration-300 ${
-                    pathname === item.href
-                      ? 'text-white bg-white/20 backdrop-blur-sm'
-                      : 'text-white/80 hover:text-white hover:bg-white/10'
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
-              {user && (
-                <>
-                  <div className="border-t border-white/20 pt-4 mt-4">
-                    <div className="px-4 py-2 text-sm text-white/60">
-                      Signed in as {user.email}
-                    </div>
-                    <Link
-                      href="/profile"
-                      className="block px-4 py-3 rounded-xl text-base font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all duration-300"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Your Profile
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full text-left px-4 py-3 rounded-xl text-base font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all duration-300"
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </nav>
   )
 }
